@@ -1,0 +1,4 @@
+enum ReaderMode {
+  mushaf,
+  list,
+}
