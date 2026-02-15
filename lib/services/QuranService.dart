@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
 import 'package:quraan/models/ChapterModel.dart';
+import 'package:quraan/models/PageVerseModel.dart';
 import 'package:quraan/models/VerseModel.dart';
 import 'package:quraan/services/CacheService.dart';
 
@@ -69,17 +70,44 @@ class QuranService {
   // تظبيط عرض الايات
   List<VerseModel> _processVerses(int chapterId, List<VerseModel> verses) {
 
+    // الفاتحة: نرجعها زي ما هي (البسملة آية 1)
+    if (chapterId == 1) {
+      return verses;
+    }
+
+    // التوبة: بدون بسملة
     if (chapterId == 9) {
       return verses;
     }
 
+    // باقي السور: نشيل البسملة من الآيات
     if (verses.isNotEmpty &&
         verses.first.verseNumber == 1 &&
-        verses.first.arabicText.contains("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")) {
+        verses.first.arabicText.contains("بِسْمِ اللَّهِ")) {
       return verses.sublist(1);
     }
 
     return verses;
+  }
+
+  Future<List<PageVerseModel>> getPageVerses(int pageNumber) async {
+    try {
+      final response = await dio.get(
+        '/quran/verses/uthmani',
+        queryParameters: {
+          'page_number': pageNumber,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List data = response.data['verses'];
+        return data.map((e) => PageVerseModel.fromJson(e)).toList();
+      } else {
+        throw Exception('Failed to load page verses');
+      }
+    } catch (e) {
+      throw Exception('Error fetching page verses: $e');
+    }
   }
 
 

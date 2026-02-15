@@ -43,18 +43,12 @@ class QuranReaderController extends GetxController {
     try {
       isLoading.value = true;
       final data = await service.getVerses(chapterId);
-
-      List<VerseModel> adjusted = List.from(data);
-
-      if (chapterId == 1 && adjusted.isNotEmpty) {
-        adjusted.removeAt(0); // حذف البسملة فقط
-      }
-
-      verses.assignAll(adjusted);
+      verses.assignAll(data);
     } finally {
       isLoading.value = false;
     }
   }
+
 
 
   int getDisplayVerseNumber(int index) {
@@ -64,7 +58,7 @@ class QuranReaderController extends GetxController {
     return verses[index].verseNumber;
   }
 
-  bool get hasBasmala => chapterId != 9;
+  bool get hasBasmala => chapterId != 1 && chapterId != 9;
   String get basmalaText => "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
 
   void toggleControls() => showControls.toggle();
@@ -84,4 +78,6 @@ class QuranReaderController extends GetxController {
 
   /// النص للمشاركة
   String get selectedVerseText => selectedVerse.value?.arabicText ?? "";
+
+
 }

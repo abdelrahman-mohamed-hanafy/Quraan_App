@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:quraan/controllers/MushafController.dart';
 import 'package:quraan/controllers/QuranReaderController.dart';
 import 'package:quraan/controllers/SignUpController.dart';
 import 'package:quraan/controllers/SurahController.dart';
@@ -15,6 +16,7 @@ import 'package:quraan/services/SupabaseService.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'controllers/LoginController.dart';
+import 'screens/MushafPage.dart';
 import 'screens/QuranReaderPage.dart';
 import 'screens/logIn_page.dart';
 import 'services/CacheService.dart';
@@ -87,6 +89,13 @@ class MyApp extends StatelessWidget {
           page: () => QuranReaderPage(),
           binding: BindingsBuilder(() {
             Get.lazyPut(() => QuranReaderController());
+          }),
+        ),
+        GetPage(
+          name: '/mushaf',
+          page: () => MushafPage(),
+          binding: BindingsBuilder(() {
+            Get.put(MushafController());
           }),
         ),
 

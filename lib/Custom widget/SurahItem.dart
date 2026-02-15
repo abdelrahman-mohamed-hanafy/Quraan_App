@@ -9,14 +9,20 @@ class SurahItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        // الانتقال لصفحة قراءة السورة مع إرسال المعلومات اللازمة
-        Get.toNamed('/reader', arguments: {
-          'id': surah.id,
-          'nameArabic': surah.nameArabic,
-          // لاحقًا يمكن إضافة: 'initialOffset': offset
-        });
-      },
+      // onTap: () {
+      //   // الانتقال لصفحة قراءة السورة مع إرسال المعلومات اللازمة
+      //   Get.toNamed('/mushaf', arguments: {
+      //     'id': surah.id,
+      //     'nameArabic': surah.nameArabic,
+      //     // لاحقًا يمكن إضافة: 'initialOffset': offset
+      //   });
+      //},
+        onTap: () {
+          Get.toNamed('/mushaf', arguments: {
+            'page': surah.startPage,
+            'nameArabic': surah.nameArabic,
+          });
+        },
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF123E2F), // خلفية داكنة
