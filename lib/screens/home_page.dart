@@ -81,35 +81,47 @@ class HomePage extends GetView<HomeController> {
                                   ),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
-                                child: Row(
-                                  children: const [
-                                    Icon(Icons.menu_book,
-                                        color: Colors.white, size: 32),
-                                    SizedBox(width: 12),
-                                    Column(
-                                      crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "آخر قراءة",
-                                          style: TextStyle(
-                                              color: Colors.white70),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          "اقرأ سورة الكهف",
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ],
-                                    )
-                                  ],
+                                child: InkWell(
+                                  onTap: () async {
+                                    await Get.toNamed('/mushaf', arguments: {
+                                      'page': controller.lastPage.value,
+                                      'nameArabic': controller.lastSurah.value,
+                                    });
+                                  },
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.menu_book,
+                                          color: Colors.white, size: 32),
+                                      const SizedBox(width: 12),
+                                      Column(
+                                        crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            "آخر قراءة",
+                                            style: TextStyle(
+                                                color: Colors.white70),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Obx(() {
+                                            return Text(
+                                              " سورة ${controller.lastSurah.value}",
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            );
+                                          }),
+                                        ],
+                                      )
+                                    ],
+                                  ),
                                 ),
                               ),
 
                               const SizedBox(height: 25),
+
                               /// =======================
                               /// 📖 Last Listen Card
                               /// =======================
@@ -175,11 +187,11 @@ class HomePage extends GetView<HomeController> {
                                 physics: const NeverScrollableScrollPhysics(),
                                 children: [
                                   QuickItem(
-                                      icon: Icons.menu_book,
-                                      title: "قراءة",
-                                    onTap: (){
-                                        Get.toNamed('/Surah');
-                                    } ,
+                                    icon: Icons.menu_book,
+                                    title: "قراءة",
+                                    onTap: () {
+                                      Get.toNamed('/Surah');
+                                    },
                                   ),
                                   QuickItem(
                                       icon: Icons.headphones,

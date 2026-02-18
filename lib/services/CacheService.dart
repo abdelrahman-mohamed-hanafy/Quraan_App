@@ -122,7 +122,21 @@ class CacheService {
   }
 
   // =========================
-  // 🔹 Scroll Position (Last Read)
+  // 🔹 (Last Read)
   // =========================
+  Future<void> saveLastRead(int page, String surah) async {
+    await _appBox.put('last_read_page', page);
+    await _appBox.put('last_read_surah', surah);
+
+    print('Saved last read page: $page');
+    print('Saved last read surah: $surah');
+  }
+  Future<int?> getLastReadPage() async {
+    return _appBox.get('last_read_page');
+  }
+
+  Future<String?> getLastReadSurah() async {
+    return _appBox.get('last_read_surah');
+  }
 
 }

@@ -4,6 +4,7 @@ import 'package:quraan/services/LocationService.dart';
 import 'package:quraan/services/SupabaseService.dart';
 import 'package:quraan/services/PrayerTimesService.dart';
 import 'package:quraan/services/CacheService.dart';
+import 'package:quraan/services/workManagerService.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeController extends GetxController {
@@ -12,6 +13,7 @@ class HomeController extends GetxController {
   final cache = Get.find<CacheService>();
   final  locationService = Get.find<LocationService>();
   final RxString nextPrayer = ''.obs;
+  final RxBool lastReadChanged = false.obs;
 
   final RxString userName = ''.obs;
   final RxBool isUserLoading = false.obs;
@@ -23,6 +25,9 @@ class HomeController extends GetxController {
 
   StreamSubscription<AuthState>? _authSub;
 
+  final RxInt lastPage = 1.obs;
+  final RxString lastSurah = ''.obs;
+  late final prayerTime ;
   String? get _userId =>
       Supabase.instance.client.auth.currentUser?.id;
 
@@ -31,6 +36,10 @@ class HomeController extends GetxController {
     super.onInit();
     _loadInitialData();
     _listenToAuthChanges();
+    loadLastRead();
+    ever(lastReadChanged, (_) {
+      loadLastRead();
+    });
   }
 
   Future<void> _loadInitialData() async {
@@ -128,6 +137,14 @@ class HomeController extends GetxController {
 
       prayerTimes.assignAll(filteredArabic);
       _calculateNextPrayer();
+      final duration = await durationFromNowToNextPrayer();
+      //   final duration = const Duration(seconds: 10);
+
+      await WorkManagerService.registerBackgroundTask(
+        nextPrayer.value,
+        duration,
+      );
+
 
     } catch (e) {
       errorMessage.value =
@@ -179,7 +196,51 @@ class HomeController extends GetxController {
 
     return "$hour:$minute";
   }
+  // =========================
+  // 🔹 Next Prayer Date Time
+  // =========================
+  DateTime get nextPrayerDateTime {
+    final now = DateTime.now();
+    final nextPrayerTime = prayerTimes[nextPrayer.value];
 
+    if (nextPrayerTime == null) return now;
+
+    final parts = nextPrayerTime.split(":");
+    if (parts.length < 2) return now;
+
+    final hour = int.parse(parts[0]);
+    final minute = int.parse(parts[1]);
+
+    DateTime prayerDateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+
+    if (prayerDateTime.isBefore(now)) {
+      prayerDateTime = prayerDateTime.add(const Duration(days: 1));
+    }
+
+    return prayerDateTime;
+  }
+  // =========================
+  // 🔹 Duration From Now To Next Prayer
+  // =========================
+  Future<Duration> durationFromNowToNextPrayer() async {
+    final now = DateTime.now();
+    final duration = await nextPrayerDateTime.difference(now);
+    return duration;
+  }
+
+  Future<void> loadLastRead() async {
+    final page = await cache.getLastReadPage();
+    final surah = await cache.getLastReadSurah();
+
+    if (page != null) lastPage.value = page;
+    if (surah != null) lastSurah.value = surah;
+  }
 
   @override
   void onClose() {

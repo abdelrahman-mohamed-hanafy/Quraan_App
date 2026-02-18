@@ -9,37 +9,33 @@ class MushafPage extends GetView<MushafController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // الخلفية الرئيسية غامقة
-      backgroundColor: const Color(0xFF0B2B0D),
-      body: SafeArea(
-        child: Obx(() => PageView.builder(
-          controller: controller.pageController,
-          onPageChanged: controller.onPageChanged,
-          itemCount: 604,
-          reverse: true,
-          physics: controller.isZooming.value
-              ? const NeverScrollableScrollPhysics()
-              : const BouncingScrollPhysics(),
-          itemBuilder: (context, index) {
-            final pageNumber = index + 1;
+          backgroundColor: const Color(0xFF0B2B0D),
+          body: SafeArea(
+    child: PageView.builder(
+      controller: controller.pageController,
+      onPageChanged: controller.onPageChanged,
+      itemCount: 604,
+      reverse: true,
+      physics: const BouncingScrollPhysics(),
+      itemBuilder: (context, index) {
+        final pageNumber = index + 1;
 
-            return Obx(() {
-              final verses = controller.pagesCache[pageNumber];
+        return Obx(() {
+          final verses = controller.pagesCache[pageNumber];
 
-              if (verses == null) {
-                controller.loadPage(pageNumber);
-                return const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFFD4AF37),
-                  ),
-                );
-              }
+          if (verses == null) {
+            controller.loadPage(pageNumber);
+            return const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFFD4AF37),
+              ),
+            );
+          }
 
-              return MushafPageContent(verses: verses);
-            });
-          },
-        )),
-      ),
-    );
+          return MushafPageContent(verses: verses);
+        });
+      },
+    )),
+          );
   }
 }

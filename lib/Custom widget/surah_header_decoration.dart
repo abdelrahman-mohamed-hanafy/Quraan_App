@@ -38,7 +38,7 @@ class SurahHeaderDecoration extends StatelessWidget {
                     fontFamily: 'UthmanicHafs',
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: Colors.amber,
                     letterSpacing: 0.5,
                   ),
                 ),

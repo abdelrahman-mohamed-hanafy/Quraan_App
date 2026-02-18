@@ -20,6 +20,7 @@ import 'screens/MushafPage.dart';
 import 'screens/QuranReaderPage.dart';
 import 'screens/logIn_page.dart';
 import 'services/CacheService.dart';
+import 'services/workManagerService.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,10 +32,14 @@ Future<void> main() async {
 
   await Hive.initFlutter();
 
+  // Services
   Get.put<UserService>(UserService(), permanent: true);
+
   final cacheService = CacheService();
   await cacheService.init();
   Get.put<CacheService>(cacheService, permanent: true);
+
+  await WorkManagerService.initialize();
 
   runApp(const MyApp());
 }
@@ -47,6 +52,7 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
 
+      // Global Services
       initialBinding: BindingsBuilder(() {
         Get.lazyPut(() => QuranService(), fenix: true);
         Get.lazyPut(() => PrayerTimesService(), fenix: true);
@@ -56,49 +62,59 @@ class MyApp extends StatelessWidget {
       initialRoute: '/home',
 
       getPages: [
+        // ✅ HOME
         GetPage(
           name: '/home',
-          page: () => HomePage(),
+          page: () => const HomePage(),
           binding: BindingsBuilder(() {
-            Get.lazyPut(() => HomeController());
+            Get.put(HomeController(), permanent: true);
           }),
         ),
+
+        // ✅ SIGN UP
         GetPage(
           name: '/Sign',
-          page: () => SignUpPage(),
+          page: () => const SignUpPage(),
           binding: BindingsBuilder(() {
             Get.lazyPut(() => SignUpController());
           }),
         ),
+
+        // ✅ LOGIN
         GetPage(
           name: '/LogIn',
-          page: () => LoginPage(),
+          page: () => const LoginPage(),
           binding: BindingsBuilder(() {
             Get.lazyPut(() => LoginController());
           }),
         ),
+
+        // ✅ SURAH
         GetPage(
           name: '/Surah',
-          page: () => SurahPage(),
+          page: () => const SurahPage(),
           binding: BindingsBuilder(() {
             Get.lazyPut(() => SurahController());
           }),
         ),
+
+        // ✅ READER
         GetPage(
           name: '/reader',
-          page: () => QuranReaderPage(),
+          page: () => const QuranReaderPage(),
           binding: BindingsBuilder(() {
             Get.lazyPut(() => QuranReaderController());
           }),
         ),
+
+        // ✅ MUSHAf
         GetPage(
           name: '/mushaf',
-          page: () => MushafPage(),
+          page: () => const MushafPage(),
           binding: BindingsBuilder(() {
-            Get.put(MushafController());
+            Get.lazyPut(() => MushafController());
           }),
         ),
-
       ],
     );
   }
