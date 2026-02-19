@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:get/get.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:quraan/services/LocationService.dart';
 import 'package:quraan/services/SupabaseService.dart';
 import 'package:quraan/services/PrayerTimesService.dart';
 import 'package:quraan/services/CacheService.dart';
+import 'package:quraan/services/audio_service.dart';
 import 'package:quraan/services/workManagerService.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -11,7 +13,8 @@ class HomeController extends GetxController {
   final userService = Get.find<UserService>();
   final prayerService = Get.find<PrayerTimesService>();
   final cache = Get.find<CacheService>();
-  final  locationService = Get.find<LocationService>();
+  final locationService = Get.find<LocationService>();
+
   final RxString nextPrayer = ''.obs;
   final RxBool lastReadChanged = false.obs;
 
@@ -24,10 +27,12 @@ class HomeController extends GetxController {
   final RxString errorMessage = ''.obs;
 
   StreamSubscription<AuthState>? _authSub;
+  StreamSubscription<PlayerState>? _adhanSub;
+  bool _isListening = false;
 
   final RxInt lastPage = 1.obs;
   final RxString lastSurah = ''.obs;
-  late final prayerTime ;
+
   String? get _userId =>
       Supabase.instance.client.auth.currentUser?.id;
 
@@ -37,9 +42,19 @@ class HomeController extends GetxController {
     _loadInitialData();
     _listenToAuthChanges();
     loadLastRead();
+
     ever(lastReadChanged, (_) {
       loadLastRead();
     });
+
+    if (!_isListening) {
+      _isListening = true;
+      _adhanSub = player.playerStateStream.listen((state) async {
+        if (state.processingState == ProcessingState.completed) {
+          await onAdhanFinished();
+        }
+      });
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -50,18 +65,17 @@ class HomeController extends GetxController {
   }
 
   void _listenToAuthChanges() {
-    _authSub =
-        userService.authStateChanges.listen((data) {
-          if (data.event == AuthChangeEvent.signedIn ||
-              data.event == AuthChangeEvent.signedOut ||
-              data.event == AuthChangeEvent.userUpdated) {
-            _loadUserName();
-          }
-        });
+    _authSub = userService.authStateChanges.listen((data) {
+      if (data.event == AuthChangeEvent.signedIn ||
+          data.event == AuthChangeEvent.signedOut ||
+          data.event == AuthChangeEvent.userUpdated) {
+        _loadUserName();
+      }
+    });
   }
 
   // =========================
-  // 🔹 Load User Name (Offline First)
+  // 🔹 Load User Name
   // =========================
   Future<void> _loadUserName() async {
     final userId = _userId;
@@ -75,34 +89,27 @@ class HomeController extends GetxController {
       isUserLoading.value = true;
       errorMessage.value = '';
 
-      String? cachedName =
-      await cache.getUserName(userId);
+      String? cachedName = await cache.getUserName(userId);
 
-      if (cachedName != null &&
-          cachedName.isNotEmpty) {
+      if (cachedName != null && cachedName.isNotEmpty) {
         userName.value = cachedName;
       }
 
       try {
         final remoteName = await userService.fetchUserName();
 
-        if (remoteName != null &&
-            remoteName.isNotEmpty) {
+        if (remoteName != null && remoteName.isNotEmpty) {
           userName.value = remoteName;
 
           if (remoteName != cachedName) {
-            await cache.saveUserName(
-                userId, remoteName);
+            await cache.saveUserName(userId, remoteName);
           }
         }
-      } catch (_) {
-
-      }
+      } catch (_) {}
 
       if (userName.value.isEmpty) {
         userName.value = 'أهلاً بك';
       }
-
     } finally {
       isUserLoading.value = false;
     }
@@ -111,21 +118,19 @@ class HomeController extends GetxController {
   // =========================
   // 🔹 Load Prayer Times
   // =========================
-  Future<void> _loadPrayerTimes(
-      {bool forceRefresh = false}) async {
+  Future<void> _loadPrayerTimes({bool forceRefresh = false}) async {
     try {
       errorMessage.value = '';
       isPrayerLoading.value = true;
 
-      final position =
-      await locationService.getCurrentLocation();
+      final position = await locationService.getCurrentLocation();
 
-      final data =
-      await prayerService.fetchPrayerTimes(
+      final data = await prayerService.fetchPrayerTimes(
         position.latitude,
         position.longitude,
         forceRefresh: forceRefresh,
       );
+
       final filteredArabic = {
         "الفجر": _formatTime(data["Fajr"] ?? ""),
         "الشروق": _formatTime(data["Sunrise"] ?? ""),
@@ -136,16 +141,15 @@ class HomeController extends GetxController {
       };
 
       prayerTimes.assignAll(filteredArabic);
+
       _calculateNextPrayer();
+
       final duration = await durationFromNowToNextPrayer();
-      //   final duration = const Duration(seconds: 10);
 
       await WorkManagerService.registerBackgroundTask(
         nextPrayer.value,
         duration,
       );
-
-
     } catch (e) {
       errorMessage.value =
           e.toString().replaceFirst('Exception: ', '');
@@ -157,6 +161,33 @@ class HomeController extends GetxController {
   Future<void> refreshData() async {
     await _loadPrayerTimes(forceRefresh: true);
   }
+
+  // =========================
+  // 🔹 Time Format (24h for logic)
+  // =========================
+  String _formatTime(String time) {
+    return time.split(" ").first;
+  }
+
+  // =========================
+  // 🔹 Time Format for UI (12h)
+  // =========================
+  String formatTimeForUI(String time) {
+    final parts = time.split(":");
+    int hour = int.parse(parts[0]);
+    final minute = parts[1].padLeft(2, '0');
+
+    final period = hour >= 12 ? "م" : "ص";
+
+    hour = hour % 12;
+    if (hour == 0) hour = 12;
+
+    return "$hour:$minute $period";
+  }
+
+  // =========================
+  // 🔹 Calculate Next Prayer
+  // =========================
   void _calculateNextPrayer() {
     if (prayerTimes.isEmpty) return;
 
@@ -180,24 +211,12 @@ class HomeController extends GetxController {
         return;
       }
     }
+
     nextPrayer.value = "الفجر";
   }
-  String _formatTime(String time) {
-    final cleanTime = time.split(" ").first;
 
-    final parts = cleanTime.split(":");
-    if (parts.length < 2) return cleanTime;
-
-    int hour = int.parse(parts[0]);
-    final minute = parts[1].padLeft(2, '0');
-
-    hour = hour % 12;
-    if (hour == 0) hour = 12;
-
-    return "$hour:$minute";
-  }
   // =========================
-  // 🔹 Next Prayer Date Time
+  // 🔹 Next Prayer DateTime
   // =========================
   DateTime get nextPrayerDateTime {
     final now = DateTime.now();
@@ -225,13 +244,13 @@ class HomeController extends GetxController {
 
     return prayerDateTime;
   }
+
   // =========================
-  // 🔹 Duration From Now To Next Prayer
+  // 🔹 Duration to Next Prayer
   // =========================
   Future<Duration> durationFromNowToNextPrayer() async {
     final now = DateTime.now();
-    final duration = await nextPrayerDateTime.difference(now);
-    return duration;
+    return nextPrayerDateTime.difference(now);
   }
 
   Future<void> loadLastRead() async {
@@ -242,9 +261,33 @@ class HomeController extends GetxController {
     if (surah != null) lastSurah.value = surah;
   }
 
+  Future<void> onAdhanFinished() async {
+    _calculateNextPrayer();
+    final duration = await durationFromNowToNextPrayer();
+
+    await WorkManagerService.registerBackgroundTask(
+      nextPrayer.value,
+      duration,
+    );
+  }
+  String formatPrayerTimeUI(String time) {
+    final parts = time.split(":");
+    int hour = int.parse(parts[0]);
+    final minute = parts[1].padLeft(2, '0');
+
+    String period = hour >= 12 ? "م" : "ص";
+
+    hour = hour % 12;
+    if (hour == 0) hour = 12;
+
+    return "$hour:$minute $period";
+  }
+
   @override
   void onClose() {
     _authSub?.cancel();
+    _adhanSub?.cancel();
+    player.dispose();
     super.onClose();
   }
 }

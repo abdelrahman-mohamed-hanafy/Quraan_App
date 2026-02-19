@@ -1,7 +1,9 @@
 import 'package:hive/hive.dart';
 import 'package:quraan/models/ChapterModel.dart';
+import 'package:quraan/models/PageVerseModel.dart';
+import 'package:quraan/models/SurahAudioModel.dart';
 import 'package:quraan/models/VerseModel.dart';
-import 'package:supabase/supabase.dart';
+import 'package:quraan/models/readers.dart';
 
 class CacheService {
   // =========================
@@ -137,6 +139,77 @@ class CacheService {
 
   Future<String?> getLastReadSurah() async {
     return _appBox.get('last_read_surah');
+  }
+  // =========================
+// 🔹 Quran Page Verses
+// =========================
+
+  Future<void> savePageVerses(
+      int pageNumber,
+      List<PageVerseModel> verses,
+      ) async {
+    final data = verses.map((e) => e.toJson()).toList();
+    await _versesBox.put('page_$pageNumber', data);
+  }
+
+  List<PageVerseModel>? getPageVerses(int pageNumber) {
+    final data = _versesBox.get('page_$pageNumber');
+    if (data == null) return null;
+
+    return (data as List)
+        .map((e) =>
+        PageVerseModel.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  // =========================
+// 🔹 Quran Readers (mp3quran)
+// =========================
+
+  Future<void> saveReaders(List<Reciter> readers) async {
+    final data = readers.map((e) => e.toJson()).toList();
+    await _appBox.put('quran_readers', data);
+  }
+
+  List<Reciter>? getReaders() {
+    final data = _appBox.get('quran_readers');
+    if (data == null) return null;
+
+    try {
+      return (data as List).map((e) {
+        final map = Map<String, dynamic>.from(e as Map);
+
+        if (map['moshaf'] != null) {
+          map['moshaf'] = (map['moshaf'] as List)
+              .map((m) => Map<String, dynamic>.from(m))
+              .toList();
+        }
+
+        return Reciter.fromJson(map);
+      }).toList();
+    } catch (e) {
+      print("Error parsing cached readers: $e");
+      return null;
+    }
+  }
+
+// =========================
+// 🔹 Surah Audios By Reciter
+// =========================
+
+  Future<void> saveSurahAudios(int reciterId, List<AudioFile> audios) async {
+    final data = audios.map((e) => e.toJson()).toList();
+    await _appBox.put('surah_audios_$reciterId', data);
+  }
+
+  List<AudioFile>? getSurahAudios(int reciterId) {
+    final data = _appBox.get('surah_audios_$reciterId');
+    if (data == null) return null;
+
+    return (data as List).map((e) {
+      final map = Map<String, dynamic>.from(e as Map);
+      return AudioFile.fromJson(map);
+    }).toList();
   }
 
 }

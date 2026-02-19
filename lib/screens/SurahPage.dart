@@ -95,7 +95,7 @@ class SurahPage extends GetView<SurahController> {
                           crossAxisSpacing: 12,
                           childAspectRatio: 2.5,
                         ),
-                        cacheExtent: 500, // preload elements for smooth scroll
+                        cacheExtent: 500,
                         physics: const BouncingScrollPhysics(),
                         itemBuilder: (context, index) {
                           final surah = controller.filteredSurahs[index];

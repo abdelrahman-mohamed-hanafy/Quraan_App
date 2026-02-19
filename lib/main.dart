@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:quraan/controllers/AudioPlayerController.dart';
 import 'package:quraan/controllers/MushafController.dart';
-import 'package:quraan/controllers/QuranReaderController.dart';
 import 'package:quraan/controllers/SignUpController.dart';
 import 'package:quraan/controllers/SurahController.dart';
+import 'package:quraan/controllers/SurahsByReaderController.dart';
 import 'package:quraan/controllers/home_controller.dart';
+import 'package:quraan/controllers/readers_controller.dart';
+import 'package:quraan/screens/AudioPlayerPage.dart';
 import 'package:quraan/screens/SurahPage.dart';
 import 'package:quraan/screens/home_page.dart';
 import 'package:quraan/screens/signUp_page.dart';
+import 'package:quraan/screens/surahsByReaderPage.dart';
 import 'package:quraan/services/LocationService.dart';
 import 'package:quraan/services/PrayerTimesService.dart';
 import 'package:quraan/services/QuranService.dart';
@@ -17,8 +21,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'controllers/LoginController.dart';
 import 'screens/MushafPage.dart';
-import 'screens/QuranReaderPage.dart';
 import 'screens/logIn_page.dart';
+import 'screens/readers_page.dart';
 import 'services/CacheService.dart';
 import 'services/workManagerService.dart';
 
@@ -57,6 +61,9 @@ class MyApp extends StatelessWidget {
         Get.lazyPut(() => QuranService(), fenix: true);
         Get.lazyPut(() => PrayerTimesService(), fenix: true);
         Get.lazyPut(() => LocationService(), fenix: true);
+
+        // ✅ Audio Player Global
+        Get.put(AudioPlayerController(), permanent: true);
       }),
 
       initialRoute: '/home',
@@ -98,15 +105,6 @@ class MyApp extends StatelessWidget {
           }),
         ),
 
-        // ✅ READER
-        GetPage(
-          name: '/reader',
-          page: () => const QuranReaderPage(),
-          binding: BindingsBuilder(() {
-            Get.lazyPut(() => QuranReaderController());
-          }),
-        ),
-
         // ✅ MUSHAf
         GetPage(
           name: '/mushaf',
@@ -114,6 +112,19 @@ class MyApp extends StatelessWidget {
           binding: BindingsBuilder(() {
             Get.lazyPut(() => MushafController());
           }),
+        ),
+        // ✅ READER
+        GetPage(
+          name: '/readers',
+          page: () => ReadersPage(),
+          binding: BindingsBuilder(() {
+            Get.lazyPut(() => RecitersController());
+          }),
+        ),
+        GetPage(name: '/surahsByReader', page: () =>  SurahsByReaderPage(),
+        binding: BindingsBuilder(() {
+          Get.lazyPut(() => SurahsByReaderController());
+        })
         ),
       ],
     );
